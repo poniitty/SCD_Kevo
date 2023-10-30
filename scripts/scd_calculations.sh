@@ -4,7 +4,7 @@
 #SBATCH --output=output_%j.txt
 #SBATCH --error=errors_%j.txt
 #SBATCH --time=06:00:00
-#SBATCH --ntasks=20
+#SBATCH --ntasks=12
 #SBATCH --nodes=6-10
 #SBATCH --partition=large
 #SBATCH --mem-per-cpu=16G
@@ -22,4 +22,4 @@ fi
 echo "TMPDIR=/scratch/project_2007415/temp" >> ~/.Renviron
 
 # Run the R script
-srun singularity_wrapper exec Rscript --no-save --slave 04_scd_calculations.R
+srun singularity_wrapper exec Rscript --no-save --slave 06_scd_calculations.R

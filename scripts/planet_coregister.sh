@@ -22,4 +22,4 @@ fi
 echo "TMPDIR=/scratch/project_2007415/temp" >> ~/.Renviron
 
 # Run the R script
-srun singularity_wrapper exec Rscript --no-save 02_planet_coregister.R
+srun singularity_wrapper exec Rscript --no-save 03_planet_coregister.R
