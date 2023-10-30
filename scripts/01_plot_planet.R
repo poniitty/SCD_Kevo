@@ -182,6 +182,9 @@ df <- tibble(f = unlist(lapply(tifs, function(x) tail(str_split(x,"/")[[1]], 1))
 df <- df %>% 
   filter(f %in% sels)
 
+df <- df %>% 
+  mutate(date = as_date(paste(year,month,day,sep = "-")))
+
 write_csv(df, "data/selected_planets.csv")
 
 # For cloud masking

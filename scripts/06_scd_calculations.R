@@ -35,10 +35,8 @@ shps <- list.files(paste0(planetdir, "/coregistered/"), pattern = "_mask.shp$", 
 
 master <- rast(paste0(planetdir, "/classifications/", gsub(".tif","_probs.tif",img_df$f[1])))
 
-aoi <- st_bbox(master) %>% 
-  st_as_sfc() %>% 
-  st_as_sf() %>% 
-  st_transform(crs = crs(master, proj = T))
+aoi <- st_read("data/aoi.gpkg") %>% 
+  st_transform(crs = st_crs(master))
 
 pols <- st_make_grid(aoi, cellsize = 2000) %>% 
   st_as_sf() %>% 
@@ -51,7 +49,7 @@ registerDoMPI(cl)
 foreach(pol_i = seq_len(nrow(pols)), .packages = c("foreach","fasterize","scales",
                                                    "lubridate","tidyverse","sf","terra")) %dopar% {
 # for(pol_i in seq_len(nrow(pols))){
-  # pol_i <- 16
+  # pol_i <- 1
   print(pol_i)
   pol <- pols[pol_i,]
   if(!file.exists(paste0("temp/scd_",pol_i,".tif"))){
@@ -67,7 +65,7 @@ foreach(pol_i = seq_len(nrow(pols)), .packages = c("foreach","fasterize","scales
       print(i)
       
       cl <- rast(paste0(planetdir, "/classifications/", gsub(".tif","_class.tif",i)))
-      pr <- rast(paste0(planetdir, "/classifications/", gsub(".tif","_probs.tif",i)))
+      pr <- rast(paste0(planetdir, "/classifications/", gsub(".tif","_probscomb.tif",i)))
       
       if(relate(ext(cl), ext(master), relation = "intersects")){
         cl <- crop(cl, master, snap = "out")
@@ -169,8 +167,11 @@ foreach(pol_i = seq_len(nrow(pols)), .packages = c("foreach","fasterize","scales
       doys <- yday(ymd(names(df)))
       years <- year(ymd(names(df)))
       
+      mind <- min(yday(img_df$date))-1
+      maxd <- max(yday(img_df$date))
+      
       results <- foreach(rown = 1:nrow(df), .combine=rbind) %do% {
-        # rown <- 1
+        # rown <- 1000
         # if(rown %% 100000==0) {
         #   # Print on the screen some message
         #   cat(paste0("iteration: ", rown, "\n"))
@@ -192,22 +193,22 @@ foreach(pol_i = seq_len(nrow(pols)), .packages = c("foreach","fasterize","scales
         
         if(NROW(modd) > 20){
           if(min(modd$class) == 1){
-            results[, "scd"] <- 175
-            results[, "scd2"] <- 175
+            results[, "scd"] <- maxd
+            results[, "scd2"] <- maxd
           } else {
             if(max(modd$class) == 0){
-              results[, "scd"] <- 49
-              results[, "scd2"] <- 49
+              results[, "scd"] <- mind
+              results[, "scd2"] <- mind
             } else {
               
               mod <- glm(class ~ doy, weights = prob, data = modd, family = "binomial")
               
-              pred_data <- expand.grid(doy = 49:175)
+              pred_data <- expand.grid(doy = (mind+1):maxd)
               
               pred <- cbind(pred_data, predict(mod, pred_data, type = "response"))
               
               results[, "scd"] <- as.numeric(pred[which.min(abs(pred[,2]-0.5)),1])
-              results[, "scd2"] <- round(sum(pred[,2])+49)
+              results[, "scd2"] <- round(sum(pred[,2])+mind)
             }
           }
         } else {
